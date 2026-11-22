@@ -41,9 +41,12 @@
 (function () {
     "use strict";
 
-    // ---------- видео: целиком в память, затем бесконечный цикл ----------
+    // ---------- видео: сразу потоком (без ожидания всего файла), затем бесконечный цикл ----------
+    // Браузер GMod (Chromium 86) НЕ умеет H.264 — основной файл WebM (VP9), MP4 — запасной.
+    // Ролик короткий: после первого прохода он целиком в буфере, цикл крутится из памяти.
     var video = document.getElementById("loop");
-    var VIDEO = "media/loop.mp4";
+    var SOURCES = ["media/loop.webm", "media/loop.mp4"];
+    var srcIdx = 0;
     function showVideo() { document.body.classList.add("video-on"); }
     video.addEventListener("playing", showVideo);
     // диагностика: пишется в GarrysMod/chromium.log (строки с [westmoor])
@@ -55,6 +58,7 @@
         " ogg=" + new Audio().canPlayType('audio/ogg; codecs="vorbis"'));
     video.addEventListener("error", function () {
         log("video error code=" + (video.error && video.error.code) + " msg=" + (video.error && video.error.message) + " src=" + String(video.src).slice(0, 60));
+        if (srcIdx + 1 < SOURCES.length) { srcIdx++; setVideo(SOURCES[srcIdx]); } // следующий формат
     });
     var loggedPlay = false;
     video.addEventListener("playing", function () { if (!loggedPlay) { loggedPlay = true; log("video playing"); } });
@@ -65,19 +69,10 @@
         var p = video.play();
         if (p && p.catch) p.catch(function (e) { log("video play() rejected: " + e); });
     }
-    (function loadVideo() {
-        var done = false;
-        function go(src) { if (done) return; done = true; setVideo(src); }
-        var timer = setTimeout(function () { go(VIDEO); }, 10000);
-        try {
-            fetch(VIDEO).then(function (r) {
-                if (!r.ok) throw new Error("http " + r.status);
-                return r.blob();
-            }).then(function (b) {
-                clearTimeout(timer); go(URL.createObjectURL(b));
-            }).catch(function () { clearTimeout(timer); go(VIDEO); });
-        } catch (e) { clearTimeout(timer); go(VIDEO); }
-    })();
+    // пропускаем форматы, которые браузер точно не умеет
+    while (srcIdx + 1 < SOURCES.length &&
+           video.canPlayType(/\.webm$/.test(SOURCES[srcIdx]) ? 'video/webm; codecs="vp9"' : 'video/mp4; codecs="avc1.640028"') === "") srcIdx++;
+    setVideo(SOURCES[srcIdx]);
     // если цикл вдруг встал (например, после долгого фриза игры) — толкаем
     setInterval(function () {
         if (video.src && video.paused) { var p = video.play(); if (p && p.catch) p.catch(function () {}); }
@@ -126,7 +121,7 @@
     } else {
         var started = false;
         var img = new Image();
-        var t = setTimeout(function () { if (!started) { started = true; startMusic(0.6); } }, 800);
+        var t = setTimeout(function () { if (!started) { started = true; startMusic(0.6); } }, 300);
         img.onload = function () {
             if (started) return;
             started = true; clearTimeout(t);

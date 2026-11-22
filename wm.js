@@ -141,7 +141,9 @@
         switching = true;
         pos = newPos;
         var file = curFile();
-        loadTrack(file).then(function (url) {
+        // трек уже в памяти (загружен заранее) — играем оттуда; иначе сразу потоком, без ожидания всего файла
+        var ready = blobs[file] && blobs[file].url;
+        (function (url) {
             if (WM.stopped) return;
             audio.src = url;
             var seek = function () {
@@ -158,7 +160,7 @@
             dlog("music track " + file);
             if (WM.onTrack) WM.onTrack(TRACKS[order[pos]].title);
             prefetchNext();
-        });
+        })(ready || (MUSIC_DIR + file));
     }
 
     function nextPos() {
@@ -238,14 +240,11 @@
             if (live) lsSet(KEY_TAKE, JSON.stringify({ owner: WM.role, ts: now() }));
             pos = st.pos;
             // время пересчитываем в момент запуска: пока трек грузится, другая страница играет дальше
-            switching = true;
-            loadTrack(curFile()).then(function () {
-                var s2 = lsJSON(KEY_STATE);
-                var t = at;
-                if (s2 && s2.pos === pos && s2.owner !== WM.role) t = (s2.time || 0) + (now() - s2.ts) / 1000;
-                if (live) lsSet(KEY_TAKE, JSON.stringify({ owner: WM.role, ts: now() }));
-                playIndex(pos, t, live ? 1.0 : 1.5);
-            });
+            var s2 = lsJSON(KEY_STATE);
+            var t = at;
+            if (s2 && s2.pos === pos && s2.owner !== WM.role) t = (s2.time || 0) + (now() - s2.ts) / 1000;
+            // небольшой запас: пока поток догружается до нужной секунды, другая страница играет дальше
+            playIndex(pos, t + (live ? 0.4 : 0), live ? 1.0 : 1.5);
         } else {
             order = shuffle(-1);
             pos = 0;
