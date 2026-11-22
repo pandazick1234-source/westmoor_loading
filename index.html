@@ -73,7 +73,7 @@
     }
     // пропускаем форматы, которые браузер точно не умеет
     while (srcIdx + 1 < SOURCES.length &&
-           video.canPlayType(/\.webm$/.test(SOURCES[srcIdx]) ? 'video/webm; codecs="vp8"' : 'video/mp4; codecs="avc1.640028"') === "") srcIdx++;
+           video.canPlayType(/\.webm/.test(SOURCES[srcIdx]) ? 'video/webm; codecs="vp8"' : 'video/mp4; codecs="avc1.640028"') === "") srcIdx++;
     setVideo(SOURCES[srcIdx]);
     // если цикл вдруг встал (например, после долгого фриза игры) — толкаем
     setInterval(function () {
