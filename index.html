@@ -56,7 +56,8 @@
     video.addEventListener("error", function () {
         log("video error code=" + (video.error && video.error.code) + " msg=" + (video.error && video.error.message) + " src=" + String(video.src).slice(0, 60));
     });
-    video.addEventListener("playing", function () { log("video playing"); });
+    var loggedPlay = false;
+    video.addEventListener("playing", function () { if (!loggedPlay) { loggedPlay = true; log("video playing"); } });
     WM.log = log;
     function setVideo(src) {
         log("video src " + String(src).slice(0, 60));
