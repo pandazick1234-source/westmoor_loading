@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Westmoor RP</title>
+<link rel="stylesheet" href="wm.css">
+</head>
+<body>
+
+<video id="loop" muted loop playsinline preload="auto"></video>
+
+<!-- громкость музыки: левый нижний угол -->
+<div id="vol" class="vol">
+    <button id="mute" class="vol-btn" title="Выключить / включить музыку">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path class="spk" d="M4 9h4l5-4v14l-5-4H4z"/>
+            <path class="w1" d="M16 9.5a3.5 3.5 0 0 1 0 5"/>
+            <path class="w2" d="M18.5 7a7 7 0 0 1 0 10"/>
+            <path class="x" d="M16 9l5 6M21 9l-5 6"/>
+        </svg>
+    </button>
+    <div class="vol-body">
+        <div class="vol-top">
+            <span class="vol-label">МУЗЫКА</span>
+            <span id="volPct" class="vol-pct">60%</span>
+        </div>
+        <input id="volRange" type="range" min="0" max="100" step="1" value="60">
+        <div id="track" class="vol-track">&nbsp;</div>
+    </div>
+</div>
+
+<!-- статус загрузки: правый нижний угол -->
+<div id="status" class="status">
+    <div id="server" class="status-server">WESTMOOR RP</div>
+    <div id="statusText" class="status-text">Подключение к серверу…</div>
+    <div class="bar"><div id="barFill" class="bar-fill"></div></div>
+</div>
+
+<script src="wm.js"></script>
+<script>
+(function () {
+    "use strict";
+
+    // ---------- видео: целиком в память, затем бесконечный цикл ----------
+    var video = document.getElementById("loop");
+    var VIDEO = "media/loop.mp4";
+    function showVideo() { document.body.classList.add("video-on"); }
+    video.addEventListener("playing", showVideo);
+    function setVideo(src) {
+        video.src = src;
+        var p = video.play();
+        if (p && p.catch) p.catch(function () {});
+    }
+    (function loadVideo() {
+        var done = false;
+        function go(src) { if (done) return; done = true; setVideo(src); }
+        var timer = setTimeout(function () { go(VIDEO); }, 10000);
+        try {
+            fetch(VIDEO).then(function (r) {
+                if (!r.ok) throw new Error("http " + r.status);
+                return r.blob();
+            }).then(function (b) {
+                clearTimeout(timer); go(URL.createObjectURL(b));
+            }).catch(function () { clearTimeout(timer); go(VIDEO); });
+        } catch (e) { clearTimeout(timer); go(VIDEO); }
+    })();
+    // если цикл вдруг встал (например, после долгого фриза игры) — толкаем
+    setInterval(function () {
+        if (video.src && video.paused) { var p = video.play(); if (p && p.catch) p.catch(function () {}); }
+    }, 1000);
+
+    // ---------- громкость ----------
+    var range = document.getElementById("volRange");
+    var pct = document.getElementById("volPct");
+    var mute = document.getElementById("mute");
+    var trackEl = document.getElementById("track");
+    var box = document.getElementById("vol");
+    var lastNonZero = 0.6;
+
+    function render(v) {
+        var p = Math.round(v * 100);
+        range.value = p;
+        pct.textContent = p ? p + "%" : "ВЫКЛ";
+        range.style.backgroundSize = p + "% 100%";
+        box.className = "vol" + (p === 0 ? " muted" : (p < 45 ? " low" : ""));
+        if (p > 0) lastNonZero = v;
+    }
+    WM.onTrack = function (title) { trackEl.textContent = "♪ " + title; };
+
+    range.addEventListener("input", function () { var v = range.value / 100; WM.setVolume(v); render(v); });
+    mute.addEventListener("click", function () {
+        var v = WM.volume > 0 ? 0 : (lastNonZero > 0.02 ? lastNonZero : 0.6);
+        WM.setVolume(v); render(v);
+    });
+    box.addEventListener("wheel", function (e) {
+        e.preventDefault();
+        var v = Math.max(0, Math.min(1, WM.volume + (e.deltaY < 0 ? 0.05 : -0.05)));
+        WM.setVolume(v); render(v);
+    });
+
+    // Громкость, сохранённая в прошлый раз. Браузер игры не хранит данные между запусками,
+    // поэтому игра (cl_music.lua) пишет её в картинку data/westmoor_loading/vol.png:
+    // ширина картинки = громкость в процентах + 1.
+    function startMusic(v) {
+        WM.setVolume(v, true);
+        render(v);
+        WM.start("loading");
+    }
+    var stored = WM.storedVolume(); // тот же запуск игры (сменили карту / переподключились)
+    if (stored !== null) {
+        startMusic(stored);
+    } else {
+        var started = false;
+        var img = new Image();
+        var t = setTimeout(function () { if (!started) { started = true; startMusic(0.6); } }, 800);
+        img.onload = function () {
+            if (started) return;
+            started = true; clearTimeout(t);
+            var w = img.naturalWidth - 1;
+            startMusic(w >= 0 && w <= 100 ? w / 100 : 0.6);
+        };
+        img.onerror = function () { if (!started) { started = true; clearTimeout(t); startMusic(0.6); } };
+        img.src = "asset://garrysmod/data/westmoor_loading/vol.png?" + Date.now();
+    }
+
+    // ---------- вызовы игры ----------
+    var statusText = document.getElementById("statusText");
+    var fill = document.getElementById("barFill");
+    var total = 0, needed = 0, got = 0;
+    function progress() {
+        if (needed > 0) fill.style.width = Math.min(100, Math.round(got / needed * 100)) + "%";
+    }
+
+    window.GameDetails = function (servername, serverurl, mapname, maxplayers, steamid, gamemode, volume, lang, gamemodeNice) {
+        if (servername) document.getElementById("server").textContent = servername;
+        var m = parseFloat(volume);
+        if (!isNaN(m)) WM.setMaster(m);
+    };
+    window.SetFilesTotal = function (n) { total = n; };
+    window.SetFilesNeeded = function (n) { needed = n; got = 0; progress(); };
+    window.DownloadingFile = function (name) {
+        got++;
+        progress();
+        statusText.textContent = "Загрузка: " + String(name).split("/").pop();
+    };
+    var NICE = {
+        "Workshop Complete": "Workshop загружен",
+        "Sending client info": "Отправка данных клиента…",
+        "Client info sent!": "Данные отправлены",
+        "Received all Lua files we needed!": "Lua-файлы получены",
+        "No files to request!": "Все файлы на месте",
+        "Starting Lua...": "Запуск Lua…",
+        "Retrieving server info": "Получение данных сервера…",
+        "Mounting Addons": "Подключение аддонов…",
+        "Loading materials": "Загрузка материалов…",
+        "Precaching models": "Подготовка моделей…",
+        "Precaching sounds": "Подготовка звуков…"
+    };
+    window.SetStatusChanged = function (s) {
+        statusText.textContent = NICE[s] || s;
+        if (s === "Sending client info" || s === "Starting Lua...") fill.style.width = "100%";
+    };
+})();
+</script>
+</body>
+</html>

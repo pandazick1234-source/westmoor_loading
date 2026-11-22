@@ -1,0 +1,93 @@
+/* Westmoor RP — загрузочный экран.
+   Только дешёвые для отрисовки вещи: без blur/backdrop-filter, без бесконечных CSS-анимаций,
+   переходы — только opacity/background-size. Так видео и интерфейс не дёргаются. */
+:root {
+    --teal: #5ef6ff;
+    --red: #ff5c54;
+    --ink: #05070a;
+    --text: #e8f6f7;
+    --muted: #b9cdd0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: var(--ink);
+    color: var(--text);
+    font-family: "Bahnschrift", "Segoe UI", Arial, sans-serif;
+    user-select: none; -webkit-user-select: none;
+    cursor: default;
+}
+
+/* только зацикленное видео на весь экран, без затемнений и логотипов */
+#loop {
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover;
+}
+
+/* ---------- громкость (левый нижний угол) ---------- */
+.vol {
+    position: fixed; left: 28px; bottom: 28px;
+    display: flex; align-items: center; gap: 12px;
+    width: 300px; padding: 12px 16px 12px 12px;
+    background: rgba(5, 9, 12, .72);
+    border: 1px solid rgba(94, 246, 255, .28);
+    border-left: 3px solid var(--teal);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+}
+.vol-btn {
+    flex: none; width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(94, 246, 255, .08);
+    border: 1px solid rgba(94, 246, 255, .35);
+    color: var(--teal); cursor: pointer; outline: none;
+}
+.vol-btn:hover { background: rgba(94, 246, 255, .18); }
+.vol-btn svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.vol-btn .spk { fill: currentColor; stroke: none; }
+.vol-btn .x { display: none; }
+.vol.low .w2 { display: none; }
+.vol.muted .vol-btn { color: var(--red); border-color: rgba(255, 92, 84, .5); background: rgba(255, 92, 84, .08); }
+.vol.muted .w1, .vol.muted .w2 { display: none; }
+.vol.muted .x { display: inline; }
+
+.vol-body { flex: 1; min-width: 0; }
+.vol-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.vol-label { font-size: 12px; letter-spacing: 3px; color: var(--muted); }
+.vol-pct { font-size: 14px; font-weight: 700; color: var(--teal); }
+.vol.muted .vol-pct { color: var(--red); }
+.vol-track {
+    margin-top: 7px; font-size: 12px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ползунок */
+input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    display: block; width: 100%; height: 4px; cursor: pointer; outline: none;
+    background: rgba(255, 255, 255, .14) linear-gradient(var(--teal), var(--teal)) no-repeat;
+    background-size: 60% 100%;
+}
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 12px; height: 18px; margin-top: 0;
+    background: var(--teal); border: 2px solid var(--ink);
+    box-shadow: 0 0 0 1px var(--teal);
+}
+.vol.muted input[type=range]::-webkit-slider-thumb { background: var(--red); box-shadow: 0 0 0 1px var(--red); }
+
+/* ---------- статус загрузки (правый нижний угол) ---------- */
+.status {
+    position: fixed; right: 32px; bottom: 30px; width: 360px;
+    text-align: right;
+}
+.status-server { text-shadow: 0 1px 2px #000; font-size: 15px; font-weight: 700; letter-spacing: 3px; color: var(--text); text-transform: uppercase;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status-text { text-shadow: 0 1px 2px #000; margin: 6px 0 9px; font-size: 13px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar { height: 3px; background: rgba(255, 255, 255, .12); }
+.bar-fill { height: 100%; width: 4%; background: var(--red); transition: width .4s ease; }
+
+@media (max-width: 900px) {
+    .status { width: 240px; }
+    .vol { width: 260px; }
+}
