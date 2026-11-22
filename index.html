@@ -46,10 +46,23 @@
     var VIDEO = "media/loop.mp4";
     function showVideo() { document.body.classList.add("video-on"); }
     video.addEventListener("playing", showVideo);
+    // диагностика: пишется в GarrysMod/chromium.log (строки с [westmoor])
+    function log(s) { try { console.log("[westmoor] " + s); } catch (e) {} }
+    log("start " + location.href + " | " + navigator.userAgent);
+    log("canPlay mp4/h264=" + video.canPlayType('video/mp4; codecs="avc1.640028"') +
+        " webm/vp9=" + video.canPlayType('video/webm; codecs="vp9"') +
+        " mp3=" + new Audio().canPlayType("audio/mpeg") +
+        " ogg=" + new Audio().canPlayType('audio/ogg; codecs="vorbis"'));
+    video.addEventListener("error", function () {
+        log("video error code=" + (video.error && video.error.code) + " msg=" + (video.error && video.error.message) + " src=" + String(video.src).slice(0, 60));
+    });
+    video.addEventListener("playing", function () { log("video playing"); });
+    WM.log = log;
     function setVideo(src) {
+        log("video src " + String(src).slice(0, 60));
         video.src = src;
         var p = video.play();
-        if (p && p.catch) p.catch(function () {});
+        if (p && p.catch) p.catch(function (e) { log("video play() rejected: " + e); });
     }
     (function loadVideo() {
         var done = false;

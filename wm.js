@@ -30,6 +30,7 @@
     var TICK = 50;
 
     function now() { return Date.now(); }
+    function dlog(s) { try { console.log("[westmoor] " + s); } catch (e) {} }
     function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
 
     function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
@@ -63,7 +64,7 @@
                 }).then(function (b) {
                     clearTimeout(timer);
                     finish(URL.createObjectURL(b));
-                }).catch(function () { clearTimeout(timer); finish(src); });
+                }).catch(function (e) { dlog("fetch failed " + src + ": " + e); clearTimeout(timer); finish(src); });
             } catch (e) { clearTimeout(timer); finish(src); }
         });
         blobs[file] = entry;
@@ -151,9 +152,10 @@
             };
             audio.addEventListener("loadedmetadata", seek);
             var p = audio.play();
-            if (p && p.catch) p.catch(function () {});
+            if (p && p.catch) p.catch(function (e) { dlog("music play() rejected: " + e); });
             if (fadeIn > 0) { fade = 0; fadeTo_(1, fadeIn); } else { fade = 1; }
             switching = false;
+            dlog("music track " + file);
             if (WM.onTrack) WM.onTrack(TRACKS[order[pos]].title);
             prefetchNext();
         });
@@ -180,6 +182,7 @@
         playIndex(nextPos(), 0, 0.8);
     });
     audio.addEventListener("error", function () {
+        dlog("music error code=" + (audio.error && audio.error.code) + " src=" + String(audio.src).slice(0, 60));
         // битый файл — пропускаем
         if (WM.stopped || !WM.active || switching) return;
         setTimeout(function () { playIndex(nextPos(), 0, 0.8); }, 500);
