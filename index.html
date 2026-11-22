@@ -47,7 +47,7 @@
     // Браузер GMod (Chromium 86) НЕ умеет H.264 — основной файл WebM (VP9), MP4 — запасной.
     // Ролик короткий: после первого прохода он целиком в буфере, цикл крутится из памяти.
     var video = document.getElementById("loop");
-    var SOURCES = ["media/loop.webm", "media/loop.mp4"];
+    var SOURCES = ["media/loop.webm?v=3", "media/loop.mp4"]; // ?v= — менять при замене видео (кэш GitHub)
     var srcIdx = 0;
     function showVideo() { document.body.classList.add("video-on"); }
     video.addEventListener("playing", showVideo);
