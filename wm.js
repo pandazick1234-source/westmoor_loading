@@ -95,6 +95,7 @@
     var fade = 0, fadeFrom = 0, fadeTo = 0, fadeStart = 0, fadeLen = 0, fadeCb = null;
     var startedAt = now();
     var switching = false;
+    var saveN = 0;
 
     function curFile() { return TRACKS[order[pos]].file; }
 
@@ -121,7 +122,7 @@
             if (k >= 1) { fadeLen = 0; var cb = fadeCb; fadeCb = null; if (cb) cb(); }
         }
         applyVolume();
-        if (WM.active && !WM.stopped) saveState();
+        if (WM.active && !WM.stopped && ++saveN % 5 === 0) saveState(); // раз в 250 мс
     }
 
     function saveState() {

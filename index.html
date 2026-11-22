@@ -27,6 +27,7 @@
         </div>
         <input id="volRange" type="range" min="0" max="100" step="1" value="60">
         <div id="track" class="vol-track">&nbsp;</div>
+        <div class="vol-hint">Громкость меняется в меню персонажей</div>
     </div>
 </div>
 
@@ -54,7 +55,7 @@
     function log(s) { try { console.log("[westmoor] " + s); } catch (e) {} }
     log("start " + location.href + " | " + navigator.userAgent);
     log("canPlay mp4/h264=" + video.canPlayType('video/mp4; codecs="avc1.640028"') +
-        " webm/vp9=" + video.canPlayType('video/webm; codecs="vp9"') +
+        " webm/vp8=" + video.canPlayType('video/webm; codecs="vp8"') +
         " mp3=" + new Audio().canPlayType("audio/mpeg") +
         " ogg=" + new Audio().canPlayType('audio/ogg; codecs="vorbis"'));
     video.addEventListener("error", function () {
@@ -72,7 +73,7 @@
     }
     // пропускаем форматы, которые браузер точно не умеет
     while (srcIdx + 1 < SOURCES.length &&
-           video.canPlayType(/\.webm$/.test(SOURCES[srcIdx]) ? 'video/webm; codecs="vp9"' : 'video/mp4; codecs="avc1.640028"') === "") srcIdx++;
+           video.canPlayType(/\.webm$/.test(SOURCES[srcIdx]) ? 'video/webm; codecs="vp8"' : 'video/mp4; codecs="avc1.640028"') === "") srcIdx++;
     setVideo(SOURCES[srcIdx]);
     // если цикл вдруг встал (например, после долгого фриза игры) — толкаем
     setInterval(function () {
@@ -127,9 +128,10 @@
             if (started) return;
             started = true; clearTimeout(t);
             var w = img.naturalWidth - 1;
+            WM.log && WM.log("saved volume png=" + w);
             startMusic(w >= 0 && w <= 100 ? w / 100 : 0.6);
         };
-        img.onerror = function () { if (!started) { started = true; clearTimeout(t); startMusic(0.6); } };
+        img.onerror = function () { WM.log && WM.log("saved volume png not readable"); if (!started) { started = true; clearTimeout(t); startMusic(0.6); } };
         img.src = "asset://garrysmod/data/westmoor_loading/vol.png?" + Date.now();
     }
 

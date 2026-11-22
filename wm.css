@@ -32,7 +32,6 @@ html, body {
     background: rgba(5, 9, 12, .72);
     border: 1px solid rgba(94, 246, 255, .28);
     border-left: 3px solid var(--teal);
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
 }
 .vol-btn {
     flex: none; width: 40px; height: 40px;
@@ -91,3 +90,8 @@ input[type=range]::-webkit-slider-thumb {
     .status { width: 240px; }
     .vol { width: 260px; }
 }
+
+/* GMod выключает мышь на загрузочном экране — ползунок здесь только показывает громкость,
+   меняется она в меню персонажей (сохраняется и для следующей загрузки) */
+.vol, .vol * { pointer-events: none; cursor: default; }
+.vol-hint { margin-top: 3px; font-size: 11px; color: rgba(185, 205, 208, .7); }
